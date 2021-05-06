@@ -9,6 +9,8 @@ from scipy.optimize import minimize
 import pytesseract
 import parse
 import codecs
+import os.path
+
 
 #%%
 
@@ -161,8 +163,19 @@ def get_data(image):
     return lines + l2
 
 
-
 # %%
+if not os.path.isfile('videodata.mp4'):
+    print("Video not found: now downloading... ", end="")
+    import pytube
+    url = 'https://youtu.be/fDZ7ozObvx4'
+    yt = pytube.YouTube(url)
+    streams = yt.streams.order_by('resolution')
+    video = streams[-2]
+    video.download(filename="videodata")
+    print("Done!")
+
+
+
 
 vidcap = cv2.VideoCapture('videodata.mp4')
 vidcap.set(cv2.CAP_PROP_POS_FRAMES, 5400-1) #5400-1
@@ -176,9 +189,10 @@ cX = [[cx, dcx]]
 cY = [[cy, dcy]]
 XY = [[x, y]]
 
-Data = []
+data = get_data(image)
+Data = [data]
 count = 0
-while success and count < 101: #2500
+while success and count < 0: #2500
     data = get_data(image)
     Data += [data]
 
