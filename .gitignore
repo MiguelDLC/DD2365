@@ -112,3 +112,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Video and plots
+*.jpg
+*.png
+*.pdf
+*.mp4
