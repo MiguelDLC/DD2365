@@ -178,7 +178,7 @@ XY = [[x, y]]
 
 Data = []
 count = 0
-while success and count < 2500: #2500
+while success and count < 101: #2500
     data = get_data(image)
     Data += [data]
 
@@ -220,7 +220,7 @@ while success and count < 2500: #2500
             row = row.ravel()
             plt.plot(cx + col*dcx, cy + row*dcy, ".")
             plt.plot(cx, cy, "x", markersize=20)
-
+            plt.savefig("../tracking%d.jpg" % count)
             plt.show()
     count += 1
 
@@ -236,7 +236,7 @@ plt.plot(cx, cy, "o")
 plt.ylim([0, 570])
 plt.xlim([0, 890])
 plt.gca().invert_yaxis()
-
+plt.savefig("../general_tracking.jpg")
 #%%
 
 # cX = np.array(cX)
