@@ -52,6 +52,10 @@ fig = plt.figure(figsize=2*defsize)
 plt.plot(c0[:, 1], c0[:, 0])
 plt.plot(c1[:, 1], c1[:, 0])
 
+np.savetxt("Lcoast.txt", c0, delimiter=",")
+np.savetxt("Rcoast.txt", c1, delimiter=",")
+
+
 cX = np.loadtxt("cX.txt", delimiter=",")
 cY = np.loadtxt("cY.txt", delimiter=",")
 XY = np.loadtxt("XY.txt", delimiter=",")
@@ -65,6 +69,9 @@ y = XY[:, 1]  / dy
 
 lat = 29 + 58.5/60 + (-y+cy)*0.3/60
 long = 32 + 35.4/60 + (x-cx)*0.3/60
+
+path = np.array([lat, long]).T
+np.savetxt("path.txt", path, delimiter=",")
 
 
 plt.ylim()
