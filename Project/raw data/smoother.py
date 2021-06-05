@@ -166,7 +166,7 @@ R  = RdR[:,0]; dR = RdR[:,1]
 xmax = np.array([L[-1], R[-1]])
 d = (xmax[1] - xmax[0])
 off = -xmax.mean()
-scale_off = (d - 298)/2
+scale_off = (d - 290)/2
 Lcoast[:,0] += off
 Rcoast[:,0] += off
 path[:,0] += off
@@ -322,7 +322,7 @@ def err(XY, T, t, path):
 
 
 
-T = np.array([0, 75, 150, 225, 300, 375, 450, 525, 600, 675, 710, 720, 730, 820])
+T = np.array([0, 75, 125, 145, 170, 190, 225, 265, 300, 370, 390, 450, 525, 600, 675, 710, 720, 730, 820])
 def cb(xk):
 	print(err(xk, T, t, path))
 
@@ -355,6 +355,18 @@ print("Final error:", err(XY.ravel(), T, t, path))
 smoothpath = np.vstack([T, X, dX, Y, dY]).T
 np.savetxt("smoothpath.csv", smoothpath, delimiter=',', header="T, X, dX, Y, dY")
 [T, X, dX, Y, dY] = smoothpath.T
+
+plt.figure(figsize=(20, 10))
+plt.plot(t, path[:,0])
+plt.plot(t, interpol(t, T, X, dX))
+plt.plot(T, interpol(T, T, X, dX), ".k")
+plt.show()
+plt.figure(figsize=(20, 10))
+plt.plot(t, path[:,1])
+plt.plot(t, interpol(t, T, Y, dY))
+plt.plot(T, interpol(T, T, Y, dY), ".k")
+plt.show()
+
 
 #%%
 # 
@@ -398,20 +410,47 @@ np.savetxt("smoothpath.csv", smoothpath, delimiter=',', header="T, X, dX, Y, dY"
 
 
 
-TH = np.array([0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 675, 710, 720, 730, 750, 780, 790])
+TH = np.array([0, 15, 25, 50, 100, 150, 200, 250, 315, 360, 400, 420, 450, 500, 550, 600, 675, 700, 720, 735, 745, 760, 785, 790, 795])
 
 HdH = optimparam(t, TH, hdg)
 H  = HdH[:,0]; dH = HdH[:,1]
+
+
+
+
+bc = ((2, 0.0), (1, 0.0))
+def errhdg(H, T, t, hdg):
+	n = len(T)
+	funh = interpolate.CubicSpline(T, H, bc_type=bc)
+
+	h = funh(t)
+	diffh = (h - hdg)
+	return diffh.dot(diffh)
+
+
+print("Initial error HDG:", errhdg(H, TH, t, hdg))
+
+opt = minimize(errhdg, H, args=(TH, t, hdg), tol=1.0e-3)
+H = opt.x
+print("Final error HDG:", errhdg(H, TH, t, hdg))
+
+funh = interpolate.CubicSpline(TH, H, bc_type=bc)
+dH = funh.derivative()(TH)
+
+
+
 
 smooth_hdg = np.vstack([TH, H, dH]).T
 np.savetxt("smooth_hdg.csv", smooth_hdg, delimiter=',', header="TH, H, dH")
 [TH, H, dH] = smooth_hdg.T
 
-
+plt.figure(figsize=(20, 10))
 plt.plot(t, hdg)
 plt.plot(t, interpol(t, TH, H, dH))
 plt.plot(TH, interpol(TH, TH, H, dH), ".k")
 plt.show()
+
+# %%
 # %%
 
 
