@@ -1,26 +1,25 @@
 
 #%%
-import parse
-import codecs
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.interpolate import interp1d
 from time import perf_counter as cl
-from line_profiler import LineProfiler
+# from line_profiler import LineProfiler
 from numba import njit 
 import os
 
 import dolfin as dl
-import gmsh
-import mshr
 from dolfin.cpp.mesh import MeshQuality
 from fenicstools.Interpolation import interpolate_nonmatching_mesh
 dl.parameters['allow_extrapolation'] = True
 
+import gmsh
+import mshr
+
+#%%
 rotate_matrix = lambda t : np.moveaxis(np.array([[np.cos(t), -np.sin(t)], [np.sin(t), np.cos(t)]]), [0, 1], [-2, -1])
 defsize = np.array([6.4, 4.8])
 
-#%%
 #%%
 @njit(cache=True)
 def my_f(x, a=0, b=1):
@@ -245,12 +244,20 @@ def pos_com(tstar):
 	return xy + (rotate_matrix(-theta).dot(com_refboat)).T
 
 
-def boatfun2(tstar):
-	hdg = hdgfun(tstar)
-	x, y = pos_com(tstar)
+def boatfun2(x, y, hdg):
 	return rotate_matrix(-hdg).dot(refboat - com_refboat[:,None]) + [[x], [y]]
 
-mymesh = (refboat - com_refboat[:,None])[:,:-1]
+def compute_inertia():
+	Iboat = refboat - com_refboat[:,None]
+	vertecies = [dl.Point(x, y) for (x, y) in Iboat.T]
+	Iboatpoly = mshr.Polygon(vertecies)
+	mesh = mshr.generate_mesh(Iboatpoly, 1)
+
+	f = dl.Expression("x[0]*x[0] + x[1]*x[1]", degree=2)
+	V = dl.FunctionSpace(mesh, "Lagrange", 2)
+	u = dl.project(f, V)
+	I = dl.assemble(u*dl.dx) / area(Iboat)
+	return I
 
 #%%
 
@@ -278,6 +285,7 @@ def find_intersect(boat, pos):
 	return px, py, xmed
 
 def updated_boat_geo(boat, xmin, xmax, ref):
+	boat = np.copy(boat)
 	lc = 2/ref #1e-2
 	th = 1.5*lc
 
@@ -422,10 +430,10 @@ def compute_move_info(mesh, BCs):
 	mybc0 = dl.DirichletBC(V.sub(0), boatmovx, boatBC)
 	mybc1 = dl.DirichletBC(V.sub(1), boatmovy, boatBC)
 	mybc2 = dl.DirichletBC(V.sub(0), 0, coastBC)
-	mybc3 = dl.DirichletBC(V.sub(1), dom_move, coastBC)
-	mybc4 = dl.DirichletBC(V.sub(0), 0, riverBC)
+	#mybc3 = dl.DirichletBC(V.sub(1), dom_move, coastBC)
+	#mybc4 = dl.DirichletBC(V.sub(0), 0, riverBC)
 	mybc5 = dl.DirichletBC(V.sub(1), dom_move, riverBC)
-	bcd = [mybc0, mybc1, mybc2, mybc3, mybc4, mybc5]
+	bcd = [mybc0, mybc1, mybc2, mybc5]
 
 	u = dl.TrialFunction(V)
 	v = dl.TestFunction(V) 
@@ -434,8 +442,8 @@ def compute_move_info(mesh, BCs):
 	f = dl.Expression(("0.0","0.0"), element = V.ufl_element())
 
 	dim = u.geometric_dimension()
-	E = 1.0e10
-	nu = 0.3
+	E = 1
+	nu = 0.2
 	mu = E*0.5/(1+nu)
 	lambda_ = nu*E/((1.0+nu)*(1.0-2.0*nu))
 
@@ -462,18 +470,18 @@ def compute_move_info(mesh, BCs):
 	return move_info
 
 
-def remesh(t, ref=20):
-	x0, y0 = pos_com(t)
+def remesh(boat, ref=20):
+	x0, y0 = center_of_mass(boat)
 	ymin, ymax = y0-800/L, y0+800/L
 	xmin, xmax = lcoastfun(y0), rcoastfun(y0)
 
-	# boat = boatfun(t)[:,:-1]
+	# boat = boat[:,:-1]
 	# vertecies = [dl.Point(x, y) for (x, y) in boat.T]
 	# boatpoly = mshr.Polygon(vertecies)
 	# river = mshr.Rectangle(dl.Point(xmin, ymin), dl.Point(xmax, ymax))
 	# mesh = mshr.generate_mesh(river - boatpoly, ref)
 
-	mesh, meshtype = gmshGenMesh(boatfun(t), xmin, xmax, ymin, ymax, ref)
+	mesh, meshtype = gmshGenMesh(boat, xmin, xmax, ymin, ymax, ref)
 
 	class RiverBC(dl.SubDomain):
 		def inside(self, x, on_boundary):
@@ -539,8 +547,8 @@ def initiate_flow(mesh, BCs, move_info, boundary_marker):
 	p1 = dl.Function(Q)
 
 	# Time step length 
-	dt = mesh.hmin()
-	mydt = dl.Expression("dt", dt=dt, degree=0)
+	hmin = mesh.hmin()
+	mydt = dl.Expression("dt", dt=hmin, degree=0)
 
 	nu = 1/Re
 	h = dl.CellDiameter(mesh);
@@ -565,315 +573,40 @@ def initiate_flow(mesh, BCs, move_info, boundary_marker):
 
 	Rvec = dl.Expression(("x[0] - xc","x[1] - yc"), xc=0.0, yc=0.0, element=V.ufl_element())
 
-	forcevec = nu*dl.dot(dl.grad(u1), n) - p1*n
+	forcevec =  - (nu*dl.dot(dl.grad(u1), n) - p1*n)
 	Forcex = forcevec[0] * ds(2)
 	Forcey = forcevec[1] * ds(2)
 	Torque = (Rvec[0]*forcevec[1] - Rvec[1]*forcevec[0]) * ds(2)
 
 	flow_vars = [u0, u1, p1]
 	forces = [Forcex, Forcey, Torque, Rvec]
-	flow_params = [au, Lu, ap, Lp, bcu, bcp, dt, mydt, boatspeedx, boatspeedy, V, forces]
+	flow_params = [au, Lu, ap, Lp, bcu, bcp, hmin, mydt, boatspeedx, boatspeedy, V, forces]
 	return flow_vars, flow_params
 
 # %%
 
-def set_dom_move(t0, t1, boatmovx, boatmovy, dom_move):
-	x0, y0 = pos_com(t0)
-	x1, y1 = pos_com(t1)
-	dx = x1 - x0
-	dy = y1 - y0
-
-	theta = hdgfun(t0) - hdgfun(t1)
+def set_dom_move(x0, y0, dx, dy, dtheta, boatmovx, boatmovy, dom_move):
 	boatmovx.x0 = x0; boatmovx.y0 = y0	
 	boatmovy.x0 = x0; boatmovy.y0 = y0	
 	boatmovx.dx=dx
 	boatmovy.dy=dy
 	dom_move.dy=dy
-	boatmovx.theta=theta
-	boatmovy.theta=theta
+	boatmovx.theta=dtheta
+	boatmovy.theta=dtheta
 
 
-def set_speeds(t0, t1, boatspeedx, boatspeedy):
-	x0, y0 = pos_com(t0)
-	x1, y1 = pos_com(t1)
-	dx = x1 - x0
-	dy = y1 - y0
-
-	theta = hdgfun(t) - hdgfun(t1)
+def set_speeds(x0, y0, dx, dy, dtheta, dt, boatspeedx, boatspeedy):
 	boatspeedx.x0 = x0; boatspeedx.y0 = y0	
 	boatspeedy.x0 = x0; boatspeedy.y0 = y0	
 	boatspeedx.dx=dx
 	boatspeedy.dy=dy
-	boatspeedx.theta=theta
-	boatspeedy.theta=theta
-	boatspeedx.dt=t1-t0
-	boatspeedy.dt=t1-t0
+	boatspeedx.theta=dtheta
+	boatspeedy.theta=dtheta
+	boatspeedx.dt=dt
+	boatspeedy.dt=dt
+
+
 
 
 
 #class BoundaryExpression(UserExpression): def eval(self, value, x): value[0] = 1 if subdomain.inside(x) else 0 
-
-#%% 
-ref = 32
-t0 = 0.0
-mesh, meshtype, move_info, flow_vars, flow_params = remesh(t0, ref)
-hmax = mesh.hmax()
-
-u0, u1, p1 = flow_vars
-au, Lu, ap, Lp, bcu, bcp, dt, mydt, boatspeedx, boatspeedy, V, forces_form = flow_params
-Forcex, Forcey, Torque, Rvec = forces_form
-Ad, bd, d, boatmovx, boatmovy, dom_move, bcd = move_info
-
-fig = plt.figure(figsize=defsize*[0.6,3])
-dl.plot(mesh,  linewidth=0.5)
-plt.tight_layout()
-plt.show()
-
-
-
-#%%
-
-# Set parameters for nonlinear and lienar solvers 
-num_nnlin_iter = 5
-prec = "amg" if dl.has_krylov_solver_preconditioner("amg") else "default" 
-
-t = t0
-i = 0
-
-#%%
-
-force_array = []
-t_array = []
-torque_array = []
-since_remesh = 0
-t_remesh = []
-i_remesh = []
-
-while t < 11:
-	if since_remesh < 15:
-		curr_dt = dt/15
-	else:
-		curr_dt = dt
-	mydt.dt = curr_dt
-
-	# Set mesh movement before fluid computation
-	set_dom_move(t, t+curr_dt, boatmovx, boatmovy, dom_move)
-	[bc.apply(Ad, bd) for bc in bcd]
-	[bc.apply(d.vector()) for bc in bcd]
-	dl.solve(Ad, d.vector(), bd, "bicgstab", "default")
-
-	
-	# fluid computation
-	set_speeds(t, t+curr_dt, boatspeedx, boatspeedy)
-	k = 0
-	for k in range(num_nnlin_iter):
-		# Assemble momentum matrix and vector 
-		Au = dl.assemble(au)
-		bu = dl.assemble(Lu)
-
-		# Compute velocity solution 
-		[bc.apply(Au, bu) for bc in bcu]
-		[bc.apply(u1.vector()) for bc in bcu]
-		dl.solve(Au, u1.vector(), bu, "bicgstab", "default")
-
-		# Assemble continuity matrix and vector
-		Ap = dl.assemble(ap) 
-		bp = dl.assemble(Lp)
-
-		# Compute pressure solution 
-		[bc.apply(Ap, bp) for bc in bcp]
-		[bc.apply(p1.vector()) for bc in bcp]
-		dl.solve(Ap, p1.vector(), bp, "bicgstab", prec)
-
-		fx = dl.assemble(Forcex)
-		fy = dl.assemble(Forcey)
-		tor = dl.assemble(Torque)
-		t_array += [t]
-		force_array += [[fx, fy]]
-		torque_array += [tor]
-
-	u0.assign(u1)
-	dl.ALE.move(mesh, d)
-	t += curr_dt
-
-	xc, yc = pos_com(t)
-	Rvec.xc = xc
-	Rvec.yc = yc
-
-	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
-	if i%2 == 0:
-		fig = plt.figure(figsize=defsize*[0.6,3])
-		levels = np.linspace(-1.1, 1.1, 23)/2
-		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
-		dl.plot(u1)
-		dl.plot(mesh, linewidth=0.5, alpha=0.5)
-		plt.plot(*posfun(t), 'o')
-		plt.plot(*pos_com(t), '*')
-		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
-
-		ymin, ymax = yc-800/L, yc+800/L
-		
-		plt.ylim([ymin, ymax])
-		plt.xlim([xmin, xmax])
-
-		plt.colorbar(pcol, aspect=50)
-		#plt.ylim([y-0.5, y+0.5])
-		plt.savefig("Mesh/img%0.5d.jpg" % i, dpi=300)
-		if i%50 == 0:
-			print("i =", i)
-			plt.show()
-		plt.close()
-		#plt.show()
-
-
-
-	boat = boatfun(t)
-	_, new_meshtype = updated_boat_geo(boat, xmin, xmax, ref)
-
-	if MeshQuality.radius_ratio_min_max(mesh)[0] < 0.2 or mesh.hmax() > 1.5*hmax or new_meshtype != meshtype:
-		u1_old = u1
-
-		mesh, meshtype, move_info, flow_vars, flow_params = remesh(t, ref)
-		hmax = mesh.hmax()
-
-		u0, u1, p1 = flow_vars
-		au, Lu, ap, Lp, bcu, bcp, dt, mydt, boatspeedx, boatspeedy, V, forces_form = flow_params
-		Forcex, Forcey, Torque, Rvec = forces_form
-		Ad, bd, d, boatmovx, boatmovy, dom_move, bcd = move_info
-		print("Remesh at iter %d, t=%.5g, New dt=%.3g" % (i, t, dt))
-
-		unew = dl.interpolate(u1_old, V)
-		u1.assign(unew)
-		u0.assign(unew)
-		[bc.apply(u1.vector()) for bc in bcu]
-		since_remesh = 0
-		t_remesh += [t]
-		i_remesh += [i]
-
-
-
-	i += 1
-	since_remesh += 1
-
-
-#lp.print_stats()
-
-# %% ========================================================================
-
-force_array = np.array(force_array)
-t_array = np.array(t_array)
-torque_array = np.array(torque_array)
-i_remesh = np.array(i_remesh)
-
-#%%
-c = [u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
-fig = plt.figure(figsize=defsize*[4,2])
-nl = num_nnlin_iter
-
-mt = np.copy(t_array[nl-1::nl])
-mfx = np.copy(force_array[nl-1::nl,0])
-mfy = np.copy(force_array[nl-1::nl,1])
-mfc = np.copy(torque_array[nl-1::nl])
-
-"""
-plt.plot(t_array, force_array[:,0], ".", c=c[0], alpha=0.1, ms=0.1)
-plt.plot(t_array, force_array[:,1], ".", c=c[1], alpha=0.1, ms=0.1)
-plt.plot(t_array, torque_array, ".", c=c[3], alpha=0.1, ms=0.1)
-"""
-plt.plot(mt, mfx, c=c[0], alpha=0.1)
-plt.plot(mt, mfy, c=c[1], alpha=0.1)
-plt.plot(mt, mfc, c=c[3], alpha=0.1)
-
-
-
-i_last_remesh = np.arange(len(mt))
-
-for i in i_remesh:
-	i_last_remesh[i:] -= i_last_remesh[i]
-
-w =  1/(1+np.exp(-15*(i_last_remesh/17 -1)))
-
-mfx[0] = 0
-mfy[0] = 0
-mfc[0] = 0
-for i in range(1, len(mt)):
-	mfx[i] = mfx[i-1]*(1-w[i]) + mfx[i]*w[i]
-	mfy[i] = mfy[i-1]*(1-w[i]) + mfy[i]*w[i]
-	mfc[i] = mfc[i-1]*(1-w[i]) + mfc[i]*w[i]
-
-plt.plot(mt, mfx, c=c[0])
-plt.plot(mt, mfy, c=c[1])
-plt.plot(mt, mfc, c=c[3])
-
-for tc in ((smoothpath.T)[0]-TINIT)*U/L:
-	plt.axvline(tc, ls="--", linewidth=0.5, color="k", zorder=10)
-
-for tc in t_remesh:
-	plt.axvline(tc, ls=":", linewidth=0.5, color="k", zorder=10)
-
-#plt.plot(mt, w/2)
-plt.xlim([0, None])
-plt.ylim([-1, 1])
-
-#%%
-
-
-
-#%%
-def smooth(x):
-	y = np.convolve(x, [0.25, 0.5, 0.25], mode="same")
-	for i in range(1000):
-		y = np.convolve(y, [0.25, 0.5, 0.25], mode="same")
-	return y
-
-dts = t_array[1:] - t_array[:-1]
-dts = dts.round(10)
-tchange = t_array[1:-1][dts[1:] != dts[:-1]]
-
-fig = plt.figure(figsize=defsize*[2,2])
-for tc in ((smoothpath.T)[0]-TINIT)*U/L:
-	plt.axvline(tc, ls="--", linewidth=0.5, color="k", zorder=10)
-
-for tc in t_remesh:
-	plt.axvline(tc, ls=":", linewidth=0.5, color="k", zorder=10)
-
-
-
-plt.plot(mt, mfx, c=c[0])
-plt.plot(mt, mfy, c=c[1])
-plt.plot(mt, mfc, c=c[3])
-plt.ylim([-2, 2])
-plt.xlim([0, None])
-
-
-extend = lambda x : np.hstack([x[0], x, x[-1]])
-textend = lambda t : np.hstack([2*t[0] - t[1], t, 2*t[-1] - t[-2]])
-
-t = np.linspace(0, 11, 1001)
-
-xy = pos_com(t)
-
-x = xy[0]
-y = xy[1]
-hd = hdgfun(t)
-
-vx = textend( (x[2:] - x[:-2])/(t[2:] - t[:-2]))
-ax = textend( (vx[2:] - vx[:-2])/(t[2:] - t[:-2]))
-
-vy = textend( (y[2:] - y[:-2])/(t[2:] - t[:-2]))
-ay = textend( (vy[2:] - vy[:-2])/(t[2:] - t[:-2]))
-
-omega = textend( (hd[2:] - hd[:-2])/(t[2:] - t[:-2]))
-domega = textend( (omega[2:] - omega[:-2])/(t[2:] - t[:-2]))
-
-#plt.plot(t, smooth(- BoatMass/M_0 * ay), "--")
-#plt.plot(t, smooth(- BoatMass/M_0 * ax), "--")
-plt.plot(t, smooth(- BoatMass/M_0 * domega), "--")
-plt.ylim([-0.2, 0.2])
-
-
-
-
-
-
-# %%
