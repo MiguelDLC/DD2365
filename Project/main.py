@@ -860,7 +860,7 @@ while t < 9 and i < 700:
 
 
 	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
-	if i%10 == 0:
+	if i%1 == 0:
 		fig = plt.figure(figsize=defsize*[0.6,3])
 		levels = np.linspace(-1.1, 1.1, 23)/2
 		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
