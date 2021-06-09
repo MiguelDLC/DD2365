@@ -1,0 +1,40 @@
+matrix_multiply.c:18:7: missed: statement clobbers memory: gettimeofday (&tp, &tzp);
+matrix_multiply.c:26:3: missed: couldn't vectorize loop
+matrix_multiply.c:28:33: missed: statement clobbers memory: _1 = rand ();
+matrix_multiply.c:27:5: missed: couldn't vectorize loop
+matrix_multiply.c:28:33: missed: statement clobbers memory: _1 = rand ();
+matrix_multiply.c:28:33: missed: statement clobbers memory: _1 = rand ();
+matrix_multiply.c:29:33: missed: statement clobbers memory: _4 = rand ();
+matrix_multiply.c:53:3: missed: couldn't vectorize loop
+matrix_multiply.c:53:3: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+matrix_multiply.c:54:5: missed: couldn't vectorize loop
+matrix_multiply.c:56:55: missed: not vectorized: complicated access pattern.
+matrix_multiply.c:56:38: missed: couldn't vectorize loop
+matrix_multiply.c:56:38: missed: not vectorized: complicated access pattern.
+matrix_multiply.c:71:3: missed: couldn't vectorize loop
+matrix_multiply.c:73:25: missed: not vectorized: complicated access pattern.
+matrix_multiply.c:71:3: missed: couldn't vectorize loop
+matrix_multiply.c:73:25: missed: not vectorized: complicated access pattern.
+matrix_multiply.c:90:3: missed: couldn't vectorize loop
+matrix_multiply.c:90:3: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+matrix_multiply.c:53:3: missed: couldn't vectorize loop
+matrix_multiply.c:53:3: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+matrix_multiply.c:54:5: missed: couldn't vectorize loop
+matrix_multiply.c:56:55: missed: not vectorized: complicated access pattern.
+matrix_multiply.c:56:38: missed: couldn't vectorize loop
+matrix_multiply.c:56:38: missed: not vectorized: complicated access pattern.
+matrix_multiply.c:53:3: missed: couldn't vectorize loop
+matrix_multiply.c:53:3: missed: not vectorized: loop nest containing two or more consecutive inner loops cannot be vectorized
+matrix_multiply.c:54:5: missed: couldn't vectorize loop
+matrix_multiply.c:56:55: missed: not vectorized: complicated access pattern.
+matrix_multiply.c:56:38: missed: couldn't vectorize loop
+matrix_multiply.c:56:38: missed: not vectorized: complicated access pattern.
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:107:10: missed: statement clobbers memory: __builtin_puts (&"1. Initializing Matrices "[0]);
+matrix_multiply.c:85:3: missed: statement clobbers memory: initialize_matrices ();
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:107:10: missed: statement clobbers memory: __builtin_puts (&"2. Matrix Multiply "[0]);
+matrix_multiply.c:18:7: missed: statement clobbers memory: gettimeofday (&tp, &tzp);
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:71:10: missed: statement clobbers memory: __builtin_memset (&matrix_r, 48, 8000000);
+matrix_multiply.c:18:7: missed: statement clobbers memory: gettimeofday (&tp, &tzp);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:107:10: missed: statement clobbers memory: __printf_chk (1, "3. Sum = %8.6f \n", ave_139);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:107:10: missed: statement clobbers memory: __printf_chk (1, "4. time = %f\n", _2);
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:107:10: missed: statement clobbers memory: __printf_chk (1, "AvgTime elem = %f\n", _6);

@@ -1,0 +1,14 @@
+\BOOKMARK [2][]{Outline0.1}{Introduction}{}% 1
+\BOOKMARK [3][]{Outline0.1.1.3}{Background and recap of the events}{Outline0.1}% 2
+\BOOKMARK [3][]{Outline0.1.2.5}{State of the art}{Outline0.1}% 3
+\BOOKMARK [2][]{Outline0.2}{Method}{}% 4
+\BOOKMARK [3][]{Outline0.2.1.6}{Experiments}{Outline0.2}% 5
+\BOOKMARK [2][]{Outline0.3}{Method}{}% 6
+\BOOKMARK [3][]{Outline0.3.1.7}{The ALE model}{Outline0.3}% 7
+\BOOKMARK [3][]{Outline0.3.2.8}{Sparse matrix-vector multiplication \(SpMV\)}{Outline0.3}% 8
+\BOOKMARK [3][]{Outline0.3.3.9}{The state of MPI}{Outline0.3}% 9
+\BOOKMARK [2][]{Outline0.4}{Proposed solution}{}% 10
+\BOOKMARK [3][]{Outline0.4.1.10}{The assembly}{Outline0.4}% 11
+\BOOKMARK [3][]{Outline0.4.2.12}{SpMV}{Outline0.4}% 12
+\BOOKMARK [2][]{Outline0.5}{Results}{}% 13
+\BOOKMARK [2][]{Outline0.6}{References}{}% 14

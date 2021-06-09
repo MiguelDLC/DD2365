@@ -606,7 +606,8 @@ def set_speeds(x0, y0, dx, dy, dtheta, dt, boatspeedx, boatspeedy):
 	boatspeedy.dt=dt
 
 
-
-
-
-#class BoundaryExpression(UserExpression): def eval(self, value, x): value[0] = 1 if subdomain.inside(x) else 0 
+def hms(s):
+	s = int(s)
+	m = s//60; s -= 60*m
+	h = m//60; m -= 60*h
+	return (h, m, s)

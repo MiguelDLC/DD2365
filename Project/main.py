@@ -24,6 +24,34 @@ matplotlib.rc("text.latex", preamble=r"""
 \newcommand\norm[1]{\left\lVert#1\right\rVert}
 """)
 
+
+#%%
+
+t = np.linspace(0, 10, 1001)
+x, y = pos_com(t)
+l, r = lcoastfun(y*1.5), rcoastfun(y*1.5)
+
+T = [3, 4.5, 6, 7, 9]
+fig, axes = plt.subplots(1, len(T), sharex=True, figsize=defsize*[2, 1])
+for (i, t) in enumerate(T):
+	ax = axes[i]
+	ax.set_title("t = %.2d:%0.2d:%0.2d" % hms(t*L/U))
+	ax.plot(x, y)
+	ax.plot(l, 1.5*y, "k")
+	ax.plot(r, 1.5*y, "k")
+	xc, yc = pos_com(t)
+	boat = boatfun(t)
+	ax.fill(boat[0], boat[1], color="white", alpha=0.5, zorder=10)
+	ax.plot(boat[0], boat[1], color="k", lw=1, zorder=20)
+	ax.plot(xc, yc, 'ok', lw=0, ms=3, zorder=20)
+	ax.set_ylim([yc-0.9, yc+0.9])
+	ax.set_aspect(1)
+	ax.set_xlabel("$x/L$")
+axes[0].set_ylabel("$y/L$")
+plt.tight_layout()
+plt.savefig("Report/Figures/snaps.pdf")
+
+
 # ==========================================================================
 # First experiment : compute the forces
 #%% 
