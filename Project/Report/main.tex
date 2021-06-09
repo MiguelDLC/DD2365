@@ -72,10 +72,10 @@ This project will thus consist in simulating canal obstruction and some other va
 This project mainly focuses on the study of the fluid forces on a solid, and the interactions that the solid and fluid have. Since the ship will be moving forward during most of the simulation, we will need to move the domain accordingly\footnote{Or use a very large domain for the simulation but this is not the option that was retained.}. These two reasons naturally lead to the choice of using an ALE FEM model that moves along the ship vertically, and deforms to accomodate the rotations and lateral movements. ALE models are commonly used to simulate problems where fluid-structure interaction is of key interest\cite{Jeannette2020Apr}\cite{Wang2018Jul} due to their great interface capturing capabilities. Solids are described in a Lagrangian framework, while the Eulerian framework is most often used for fluids. The solid deformation is computed in a Lagrangian framework and then the mesh is moved using some kind of smoothing that aims at maintaining a reasonable mesh quality for the fluid.  The main challenge with ALE-FEM occurs when large deformations require remeshing to maintain an acceptable mesh quality, or changing the mesh topology. The solution to this problem involves re-meshing globally or locally, and projecting the solution on the new mesh\cite{Remacle2010May}. The main drawbacks of a global remshing is that the projection of the solution onto the new mesh introduces a lot of numerical diffusion. This is made even worse when we whish to keep a divergence-free field from one mesh to another, as it either adds constraints on the projection, or like in this report, produces unphysical behaviours\footnote{In this context those would be extremely strong pressure gradients.} that may take some time to recover. Another drawback is that a global remeshing is difficult to apply in parallel. Local remeshing like done in \cite{Remacle2010May}, on the other had, requires a rather low level interaction with the mesh generation algorithm, whish was not easyly feasible with dolfin.
 
 \section{Method}
-olo
+
 
 
 \newpage
 \bibliographystyle{IEEEtran}
-\bibliography{test.bib}
+\bibliography{biblio.bib}
 \end{document}
