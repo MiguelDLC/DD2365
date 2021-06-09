@@ -5,7 +5,6 @@ from time import perf_counter as cl
 import cProfile # est inclu de base avec python
 pr = cProfile.Profile()
 from utils import *
-from .utils import *
 
 # %%
 import matplotlib
@@ -23,6 +22,8 @@ matplotlib.rc("text.latex", preamble=r"""
 \def\abs{\@ifstar{\oldabs}{\oldabs*}}
 \newcommand\norm[1]{\left\lVert#1\right\rVert}
 """)
+
+c = [u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
 
 
 #%%
@@ -52,6 +53,50 @@ plt.tight_layout()
 plt.savefig("Report/Figures/snaps.pdf")
 
 
+#%%
+
+
+t = np.linspace(0, 10, 1001)
+x, y = pos_com(t)
+l, r = lcoastfun(y*1.5), rcoastfun(y*1.5)
+
+T = [7, 7.6, 8]
+fig, axes = plt.subplots(1, len(T), sharex=True, figsize=defsize*[1.5, 1])
+for (i, t) in enumerate(T):
+	ax = axes[i]
+
+	ax.plot(l, 1.5*y, "k")
+	ax.plot(r, 1.5*y, "k")
+	xc, yc = pos_com(t)
+	boat = boatfun(t)
+	xmin, xmax = lcoastfun(t), rcoastfun(t)
+	ref=30
+	th = 1.5*2/ref
+	boat2, _ = updated_boat_geo(boat, xmin, xmax, ref)
+
+	ax.fill(boat[0], boat[1], color="k", alpha=0.15, zorder=-2)
+	ax.plot(boat2[0], boat2[1], color="k", lw=0.5, zorder=20)
+	ax.plot(xc, yc, 'ok', lw=0, ms=3, zorder=20)
+	ax.set_ylim([yc-0.7, yc+0.7])
+
+	mesh, meshtype, move_info, flow_vars, flow_params = remesh(boat, ref)
+	plt.sca(ax)
+
+	plt.axvline(xmin+th, ls="--", lw=0.5, c="k")
+	plt.axvline(xmax-th, ls="--", lw=0.5, c="k")
+
+	dl.plot(mesh, linewidth=0.5, alpha=0.5, zorder=21)
+
+	ax.set_aspect(1)
+	ax.set_xlabel("$x/L$")
+axes[0].set_ylabel("$y/L$")
+plt.tight_layout()
+plt.savefig("Report/Figures/topology.pdf")
+
+
+
+
+
 # ==========================================================================
 # First experiment : compute the forces
 #%% 
@@ -66,10 +111,6 @@ au, Lu, ap, Lp, bcu, bcp, hmin, mydt, boatspeedx, boatspeedy, V, forces_form = f
 Forcex, Forcey, Torque, Rvec = forces_form
 Ad, bd, d, boatmovx, boatmovy, dom_move, bcd = move_info
 
-fig = plt.figure(figsize=defsize*[0.6,3])
-dl.plot(mesh,  linewidth=0.5)
-plt.tight_layout()
-plt.show()
 
 # Set parameters for nonlinear and lienar solvers 
 num_nnlin_iter = 5
@@ -85,6 +126,10 @@ t_array = [t0]
 since_remesh = 0
 t_remesh = []
 i_remesh = []
+
+
+remeshfig, axes = plt.subplots(1, 3, sharex=True, sharey=True, figsize=defsize*[0.9*1.5, 1])
+
 
 while t < 11:
 	if since_remesh < 15:
@@ -152,34 +197,27 @@ while t < 11:
 	
 	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
 	ymin, ymax = yc-800/L, yc+800/L
-	"""
-	if i%1 == 0:
-		fig = plt.figure(figsize=defsize*[0.6,3])
+
+	if i ==298 or i == 299 or i == 315:
+		ax = axes[min(i-298, 2)]
+		ax.set_title("i = %d" % i)
+		plt.sca(ax)
+		
 		levels = np.linspace(-1.1, 1.1, 23)/2
 		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
 		dl.plot(u1)
 		dl.plot(mesh, linewidth=0.5, alpha=0.5)
 		plt.plot(*pos_com(t), 'o')
-		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
+		plt.arrow(xc, yc, fx1/2, fy1/2, length_includes_head=True, head_width=2e-2)
 
-		
-		
-		plt.ylim([ymin, ymax])
+		yc = (ymin + ymax)/2
 		plt.xlim([xmin, xmax])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.1, "t = %5.3f, i=%.4d" % (t, i))
-		
-		[Fside, Ffront] = rotate_matrix(hdgfun(t)).dot([fx, fy])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.04, "(front, side) = (%5.2f, %5.2f)" % (Ffront, Fside))
+		plt.ylim([yc-0.7, yc+0.7])
+		ax.set_aspect(1)
+		ax.set_xlabel("$x/L$")
+		axes[0].set_ylabel("$y/L$")
 
-		plt.colorbar(pcol, aspect=50)
-		#plt.ylim([y-0.5, y+0.5])
-		plt.savefig("Exp1/img%0.5d.jpg" % i, dpi=300)
-		if i%50 == 0:
-			print("i =", i)
-			plt.show()
-		plt.close()
-		#plt.show()
-	"""
+
 	if i%10 == 0:
 		print("i = %d, t=%.3f" % (i,t))
 
@@ -206,6 +244,9 @@ while t < 11:
 		t_remesh += [t]
 		i_remesh += [i]
 
+plt.tight_layout()
+plt.savefig("Report/Figures/remesh.pdf")
+plt.show()
 
 # %% =========================
 
@@ -217,7 +258,6 @@ torque_array = force_array[2]
 i_remesh = np.array(i_remesh)
 
 #%%
-c = [u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
 fig = plt.figure(figsize=defsize*[4,2])
 
 mt = np.copy(t_array)
@@ -274,8 +314,10 @@ plt.plot(mt, BoatMass/M_0 * aside, "--", lw=0.7, c=c[0], label=r"$m/M_0 \cdot \h
 plt.plot(mt, BoatMass/M_0 * afront, "--", lw=0.7, c=c[1], label=r"$m/M_0 \cdot \hat{a}_\text{longitudinal}$")
 plt.plot(mt, BoatMass/M_0 * Inertia * domegafun(mt), "--", lw=0.7, c=c[3], label=r"$\hat{I} m/M_0 \cdot \dot{\hat{\omega}}$")
 plt.legend(fontsize=12)
+plt.xlabel(r"$\hat{t}$")
 plt.tight_layout()
 plt.savefig("Report/Figures/forces.pdf")
+
 #%%
 fig = plt.figure(figsize=defsize*[4,2])
 
@@ -297,12 +339,13 @@ plt.xlim([0, 10])
 plt.ylim([-1, 1])
 
 plt.legend(fontsize=12)
+plt.xlabel(r"$\hat{t}$")
 plt.tight_layout()
 plt.savefig("Report/Figures/forces_wrong.pdf")
 
 
 
-#%%
+
 
 # ==========================================================================
 # Second experiment : recreate the event from the forces
@@ -334,7 +377,7 @@ since_remesh = 0
 t_remesh = []
 i_remesh = []
 
-
+# pre-starting the sim from historical data
 while t < 0.5:
 	if since_remesh < 15:
 		curr_dt = hmin/15 * 0.5
@@ -399,39 +442,10 @@ while t < 0.5:
 	force_array += [[fx, fy, tor]]
 
 
-	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
-	ymin, ymax = yc-800/L, yc+800/L
-	"""
-	if i%1 == 0:
-		fig = plt.figure(figsize=defsize*[0.6,3])
-		levels = np.linspace(-1.1, 1.1, 23)/2
-		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
-		dl.plot(u1)
-		dl.plot(mesh, linewidth=0.5, alpha=0.5)
-		plt.plot(*pos_com(t), 'o')
-		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
-
-		
-		plt.ylim([ymin, ymax])
-		plt.xlim([xmin, xmax])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.1, "t = %5.3f, i=%.4d" % (t, i))
-		
-		[Fside, Ffront] = rotate_matrix(hdgfun(t)).dot([fx, fy])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.04, "(front, side) = (%5.2f, %5.2f)" % (Ffront, Fside))
-
-		plt.colorbar(pcol, aspect=50)
-		#plt.ylim([y-0.5, y+0.5])
-		plt.savefig("Exp2/img%0.5d.jpg" % i, dpi=300)
-		if i%50 == 0:
-			print("i =", i)
-			plt.show()
-		plt.close()
-	"""
 	if i%10 == 0:
 		print("i = %d, t=%.3f" % (i,t))
 
-
-
+	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
 	boat = boatfun(t)
 	_, new_meshtype = updated_boat_geo(boat, xmin, xmax, ref)
 
@@ -456,8 +470,6 @@ while t < 0.5:
 		i_remesh += [i]
 
 
-
-
 # %% ======= and now the simulation
 
 x0, y0 = pos_com(t-0.5e-5)
@@ -476,9 +488,6 @@ xc, yc = pos_com(t) #position of center of mass
 
 Fx0, Fy0, Tau0 = force_array[-1]
 Fx1, Fy1, Tau1 = Fx0, Fy0, Tau0
-
-
-
 
 
 #%%
@@ -508,14 +517,11 @@ while t < 9 and i < 635:
 		dy = (vy + vy+ dvy)/2 * curr_dt
 		dtheta = (omega + omega+2*domega)/2 * curr_dt
 
-
 		# Set mesh movement before fluid computation
 		set_dom_move(xc, yc, dx, dy, dtheta, boatmovx, boatmovy, dom_move)
 		[bc.apply(Ad, bd) for bc in bcd]
 		[bc.apply(d.vector()) for bc in bcd]
 		dl.solve(Ad, d.vector(), bd, "bicgstab", "default")
-
-
 
 		set_speeds(xc, yc, dx, dy, dtheta, curr_dt, boatspeedx, boatspeedy)
 		# Assemble momentum matrix and vector 
@@ -578,43 +584,11 @@ while t < 9 and i < 635:
 	fx, fy = Fx1, Fy1
 
 
-	
-	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
-	"""
-	if i%50 == 0:
-		fig = plt.figure(figsize=defsize*[0.6,3])
-		levels = np.linspace(-1.1, 1.1, 23)/2
-		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
-		dl.plot(u1)
-		dl.plot(mesh, linewidth=0.5, alpha=0.5)
-		history_boat = boatfun(t)
-		plt.plot(history_boat[0], history_boat[1],"k", lw=0.5)
-		plt.plot(xc, yc, 'o')
-		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
-
-		ymin, ymax = yc-800/L, yc+800/L
-		
-		plt.ylim([ymin, ymax])
-		plt.xlim([xmin, xmax])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.1, "t = %5.3f, i=%.4d" % (t, i))
-		
-		[Fside, Ffront] = rotate_matrix(hdgfun(t)).dot([fx, fy])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.04, "(front, side) = (%5.2f, %5.2f)" % (Ffront, Fside))
-
-		plt.colorbar(pcol, aspect=50)
-		#plt.ylim([y-0.5, y+0.5])
-		plt.savefig("Exp2/img%0.5d.jpg" % i, dpi=300)
-		if i%50 == 0:
-			print("i =", i)
-			plt.show()
-		plt.close()
-		#plt.show()
-	"""
 	if i%10 == 0:
 		print("i = %d, t=%.3f" % (i,t))
+	
 
-
-
+	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
 	if numplot < len(Tplots) and t > Tplots[numplot]:
 		ax = axes[numplot]
 		ax.set_title(r"$\hat{t} = %0.3f$" % t)
@@ -632,14 +606,11 @@ while t < 9 and i < 635:
 		ax.set_ylim([yc-0.9, yc+0.9])
 		ymin, ymax = [yc-0.9, yc+0.9]
 
-		
 		plt.xlim([xmin, xmax])
-		
 		
 		ax.set_aspect(1)
 		ax.set_xlabel(r"$\hat{x}$")
 		numplot += 1 
-
 
 
 	boat = boatfun2(xc, yc, hdg)
@@ -705,8 +676,7 @@ since_remesh = 0
 t_remesh = []
 i_remesh = []
 
-
-
+# pre-starting the sim from historical data
 while t < 0.5:
 	if since_remesh < 15:
 		curr_dt = hmin/15 * 0.5
@@ -771,38 +741,10 @@ while t < 0.5:
 	force_array += [[fx, fy, tor]]
 
 
-	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
-	ymin, ymax = yc-800/L, yc+800/L
-	if i%1 == 0:
-		fig = plt.figure(figsize=defsize*[0.6,3])
-		levels = np.linspace(-1.1, 1.1, 23)/2
-		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
-		dl.plot(u1)
-		dl.plot(mesh, linewidth=0.5, alpha=0.5)
-		plt.plot(*pos_com(t), 'o')
-		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
-
-		
-		plt.ylim([ymin, ymax])
-		plt.xlim([xmin, xmax])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.1, "t = %5.3f, i=%.4d" % (t, i))
-		
-		[Fside, Ffront] = rotate_matrix(hdgfun(t)).dot([fx, fy])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.04, "(front, side) = (%5.2f, %5.2f)" % (Ffront, Fside))
-
-		plt.colorbar(pcol, aspect=50)
-		#plt.ylim([y-0.5, y+0.5])
-		plt.savefig("Exp3/img%0.5d.jpg" % i, dpi=300)
-		if i%100 == 0:
-			print("i =", i)
-			plt.show()
-		plt.close()
-		#plt.show()
 	if i%10 == 0:
 		print("i = %d, t=%.3f" % (i,t))
 
-
-
+	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
 	boat = boatfun(t)
 	_, new_meshtype = updated_boat_geo(boat, xmin, xmax, ref)
 
@@ -954,44 +896,11 @@ while t < 9 and i < 700:
 	Fx0, Fy0, Tau0 = Fx1, Fy1, Tau1
 	fx, fy = Fx1, Fy1
 
+	if i%10 == 0:
+		print("i = %d, t=%.3f" % (i,t))
 
 	
 	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
-	"""
-	if i%1 == 0:
-		fig = plt.figure(figsize=defsize*[0.6,3])
-		levels = np.linspace(-1.1, 1.1, 23)/2
-		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
-		dl.plot(u1)
-		dl.plot(mesh, linewidth=0.5, alpha=0.5)
-		history_boat = boatfun(t)
-		plt.plot(history_boat[0], history_boat[1],"k", lw=0.5)
-		plt.plot(xc, yc, 'o')
-		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
-		plt.arrow(xc, yc, externalfxfun(t)/2, externalfyfun(t)/2, length_includes_head=True, head_width=1e-2)
-
-		ymin, ymax = yc-800/L, yc+800/L
-		
-		plt.ylim([ymin, ymax])
-		plt.xlim([xmin, xmax])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.1, "t = %5.3f, i=%.4d" % (t, i))
-		
-		[Fside, Ffront] = rotate_matrix(hdgfun(t)).dot([fx, fy])
-		plt.text(0.9*xmin + 0.1*xmax, ymax+0.04, "(front, side) = (%5.2f, %5.2f)" % (Ffront, Fside))
-
-		plt.colorbar(pcol, aspect=50)
-		#plt.ylim([y-0.5, y+0.5])
-		plt.savefig("Exp3/img%0.5d.jpg" % i, dpi=300)
-		if i%100 == 0:
-			print("i =", i)
-			plt.show()
-		plt.close()
-		#plt.show()
-
-	if i%10 == 0:
-		print("i = %d, t=%.3f" % (i,t))
-	"""
-
 	if numplot < len(Tplots) and t > Tplots[numplot]:
 		ax = axes[numplot]
 		ax.set_title(r"$\hat{t} = %0.3f$" % t)
@@ -1009,9 +918,7 @@ while t < 9 and i < 700:
 		ax.set_ylim([yc-0.9, yc+0.9])
 		ymin, ymax = [yc-0.9, yc+0.9]
 
-		
 		plt.xlim([xmin, xmax])
-		
 		
 		ax.set_aspect(1)
 		ax.set_xlabel(r"$\hat{x}$")

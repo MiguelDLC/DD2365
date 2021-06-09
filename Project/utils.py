@@ -10,7 +10,6 @@ import os
 
 import dolfin as dl
 from dolfin.cpp.mesh import MeshQuality
-from fenicstools.Interpolation import interpolate_nonmatching_mesh
 dl.parameters['allow_extrapolation'] = True
 
 import gmsh
