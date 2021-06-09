@@ -1,3 +1,0 @@
-#pragma omp parallel for schedule(guided)
-#pragma omp parallel for schedule(static)
-#pragma omp parallel for schedule(dynamic)

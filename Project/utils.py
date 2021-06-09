@@ -611,3 +611,5 @@ def hms(s):
 	m = s//60; s -= 60*m
 	h = m//60; m -= 60*h
 	return (h, m, s)
+
+# "ffmpeg -framerate 50 -pattern_type glob -i '*.jpg' -c:v libx264 -b:v 10M out2.mp4"

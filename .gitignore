@@ -118,3 +118,8 @@ dmypy.json
 *.png
 *.pdf
 *.mp4
+
+#gmsh
+*.msh
+*_physical_region.xml
+*mesh.xml

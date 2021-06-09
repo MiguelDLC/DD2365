@@ -1,9 +1,0 @@
-#!/bin/bash
-
-for sumtype in {0..4}
-do
-    echo $sumtype
-    > "data${sumtype}.txt"
-    cc -o psum psum.c -fopenmp -lm -DSUMTYPE=$sumtype
-    srun -n 1 ./psum >> "data${sumtype}.txt"
-done

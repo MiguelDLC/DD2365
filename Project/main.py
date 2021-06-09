@@ -219,7 +219,6 @@ i_remesh = np.array(i_remesh)
 #%%
 c = [u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
 fig = plt.figure(figsize=defsize*[4,2])
-nl = num_nnlin_iter
 
 mt = np.copy(t_array)
 Tor = torque_array
@@ -276,12 +275,34 @@ plt.plot(mt, BoatMass/M_0 * afront, "--", lw=0.7, c=c[1], label=r"$m/M_0 \cdot \
 plt.plot(mt, BoatMass/M_0 * Inertia * domegafun(mt), "--", lw=0.7, c=c[3], label=r"$\hat{I} m/M_0 \cdot \dot{\hat{\omega}}$")
 plt.legend(fontsize=12)
 plt.tight_layout()
-plt.savefig("Exp2/forces.pdf")
+plt.savefig("Report/Figures/forces.pdf")
 #%%
+fig = plt.figure(figsize=defsize*[4,2])
+
+plt.plot(mt, Fside, c=c[0], label="Lateral force")
+plt.plot(mt, Ffront, c=c[1], label="Longitudinal force")
+plt.plot(mt, Tor, c=c[3], label="Torque")
+
+for tc in t_remesh:
+	plt.axvline(tc, ls=":", linewidth=0.5, color="k", zorder=10)
+
+for y_ in np.linspace(-1, 1, 9):
+	plt.axhline(y_, linewidth=0.5, alpha=0.5, zorder=-2000)
+
+
+plt.plot(mt, 15*BoatMass/M_0 * aside, "--", lw=0.7, c=c[0], label=r"$15m/M_0 \cdot \hat{a}_\text{lateral}$")
+plt.plot(mt, 15*BoatMass/M_0 * afront, "--", lw=0.7, c=c[1], label=r"$15m/M_0 \cdot \hat{a}_\text{longitudinal}$")
+plt.plot(mt, 15*BoatMass/M_0 * Inertia * domegafun(mt), "--", lw=0.7, c=c[3], label=r"$15\hat{I} m/M_0 \cdot \dot{\hat{\omega}}$")
+plt.xlim([0, 10])
+plt.ylim([-1, 1])
+
+plt.legend(fontsize=12)
+plt.tight_layout()
+plt.savefig("Report/Figures/forces_wrong.pdf")
 
 
 
-
+#%%
 
 # ==========================================================================
 # Second experiment : recreate the event from the forces
@@ -456,7 +477,15 @@ xc, yc = pos_com(t) #position of center of mass
 Fx0, Fy0, Tau0 = force_array[-1]
 Fx1, Fy1, Tau1 = Fx0, Fy0, Tau0
 
+
+
+
+
 #%%
+
+numplot = 0
+Tplots = [0.55, 2, 4, 5, 6, 7]
+snapfig, axes = plt.subplots(1, len(Tplots), sharex=True, figsize=defsize*[2, 1])
 
 while t < 9 and i < 635:
 	if since_remesh < 15:
@@ -549,9 +578,10 @@ while t < 9 and i < 635:
 	fx, fy = Fx1, Fy1
 
 
-
+	
 	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
-	if i%10 == 0:
+	"""
+	if i%50 == 0:
 		fig = plt.figure(figsize=defsize*[0.6,3])
 		levels = np.linspace(-1.1, 1.1, 23)/2
 		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
@@ -579,9 +609,37 @@ while t < 9 and i < 635:
 			plt.show()
 		plt.close()
 		#plt.show()
-
+	"""
 	if i%10 == 0:
 		print("i = %d, t=%.3f" % (i,t))
+
+
+
+	if numplot < len(Tplots) and t > Tplots[numplot]:
+		ax = axes[numplot]
+		ax.set_title(r"$\hat{t} = %0.3f$" % t)
+		plt.sca(ax)
+
+		levels = np.linspace(-1.1, 1.1, 23)/2
+		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
+		dl.plot(u1)
+		dl.plot(mesh, linewidth=0.5, alpha=0.5)
+		history_boat = boatfun(t)
+		plt.plot(history_boat[0], history_boat[1],"k", lw=0.5)
+		plt.plot(xc, yc, 'o')
+		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
+
+		ax.set_ylim([yc-0.9, yc+0.9])
+		ymin, ymax = [yc-0.9, yc+0.9]
+
+		
+		plt.xlim([xmin, xmax])
+		
+		
+		ax.set_aspect(1)
+		ax.set_xlabel(r"$\hat{x}$")
+		numplot += 1 
+
 
 
 	boat = boatfun2(xc, yc, hdg)
@@ -606,6 +664,12 @@ while t < 9 and i < 635:
 		since_remesh = 0
 		t_remesh += [t]
 		i_remesh += [i]
+
+axes[0].set_ylabel(r"$\hat{y}$")
+plt.sca(axes[0])
+plt.tight_layout()
+plt.savefig("Report/Figures/simu_snaps.pdf")
+
 
 # %%
 
@@ -785,6 +849,11 @@ Fx1, Fy1, Tau1 = Fx0, Fy0, Tau0
 
 #%%
 
+numplot = 0
+Tplots = [2, 4, 6.5, 7.3, 8]
+snapfig, axes = plt.subplots(1, len(Tplots), sharex=True, figsize=defsize*[2, 1])
+
+
 def control(t):
 	if t<1.5:
 		return 0
@@ -886,8 +955,9 @@ while t < 9 and i < 700:
 	fx, fy = Fx1, Fy1
 
 
-
+	
 	xmin, xmax = lcoastfun(yc), rcoastfun(yc)
+	"""
 	if i%1 == 0:
 		fig = plt.figure(figsize=defsize*[0.6,3])
 		levels = np.linspace(-1.1, 1.1, 23)/2
@@ -920,7 +990,32 @@ while t < 9 and i < 700:
 
 	if i%10 == 0:
 		print("i = %d, t=%.3f" % (i,t))
+	"""
 
+	if numplot < len(Tplots) and t > Tplots[numplot]:
+		ax = axes[numplot]
+		ax.set_title(r"$\hat{t} = %0.3f$" % t)
+		plt.sca(ax)
+
+		levels = np.linspace(-1.1, 1.1, 23)/2
+		pcol = dl.plot(p1, alpha=0.5, cmap="Spectral_r", vmin=-1/2, vmax=1/2, levels=levels, extend="both")
+		dl.plot(u1)
+		dl.plot(mesh, linewidth=0.5, alpha=0.5)
+		history_boat = boatfun(t)
+		plt.plot(history_boat[0], history_boat[1],"k", lw=0.5)
+		plt.plot(xc, yc, 'o')
+		plt.arrow(xc, yc, fx/2, fy/2, length_includes_head=True, head_width=2e-2)
+
+		ax.set_ylim([yc-0.9, yc+0.9])
+		ymin, ymax = [yc-0.9, yc+0.9]
+
+		
+		plt.xlim([xmin, xmax])
+		
+		
+		ax.set_aspect(1)
+		ax.set_xlabel(r"$\hat{x}$")
+		numplot += 1 
 
 
 	boat = boatfun2(xc, yc, hdg)
@@ -945,5 +1040,10 @@ while t < 9 and i < 700:
 		since_remesh = 0
 		t_remesh += [t]
 		i_remesh += [i]
+
+axes[0].set_ylabel(r"$\hat{y}$")
+plt.sca(axes[0])
+plt.tight_layout()
+plt.savefig("Report/Figures/simu_correct_snaps.pdf")
 
 # %%

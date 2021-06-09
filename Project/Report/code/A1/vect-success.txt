@@ -1,8 +1,0 @@
-matrix_multiply.c:55:7: optimized: loop vectorized using 16 byte vectors
-matrix_multiply.c:55:7: optimized: loop vectorized using 16 byte vectors
-matrix_multiply.c:72:5: optimized: loop vectorized using 16 byte vectors
-matrix_multiply.c:72:5: optimized: loop vectorized using 16 byte vectors
-matrix_multiply.c:55:7: optimized: loop vectorized using 16 byte vectors
-matrix_multiply.c:55:7: optimized: loop vectorized using 16 byte vectors
-matrix_multiply.c:55:7: optimized: loop vectorized using 16 byte vectors
-matrix_multiply.c:55:7: optimized: loop vectorized using 16 byte vectors
