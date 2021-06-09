@@ -266,4 +266,43 @@ Finally, using a proper dataset for the historical data might also improve the q
 \newpage
 \bibliographystyle{IEEEtran}
 \bibliography{biblio.bib}
+
+\newpage
+\appendix
+\section{Structure and usage of the code}
+The code is divided in 2 main blocks, one for getting and processing the data from the youtube video\cite{goodvideo} into a usable format, and then the fluid dynamics code which depends on the output of the first part. 
+
+Running the only the fluid dynamics part requires the following packages:
+\begin{itemize}
+    \item \texttt{numpy}
+    \item \texttt{matplotlib}
+    \item \texttt{scipy}
+    \item \texttt{dolfin} and \texttt{mshr}
+    \item \texttt{numba}
+    \item \texttt{gmsh}
+\end{itemize}
+The fluid sim code is in the file \texttt{main.py}, which heavily relies on \texttt{utils.py}. \texttt{utils.py} contains a set of custom functions that render the main file easier to read and understand. \texttt{utils.py} depends on the 3 following files:
+\begin{itemize}
+    \item \texttt{raw data/smoothpath.csv}
+    \item \texttt{raw data/smooth\_hdg.csv}
+    \item \texttt{raw data/smooth\_coast.csv}
+\end{itemize} 
+If one whishes to generate these 3 files, the following additional packages are required:
+\begin{itemize}
+    \item \texttt{cv2}
+    \item \texttt{pillow}
+    \item \texttt{pytesseract}
+    \item \texttt{xml}
+    \item \texttt{parse}
+    \item \texttt{codecs}
+\end{itemize}
+As well as the data file \texttt{raw data/map.xml} (which is an exported OSM map of the suez canal). The code should be run in the following order:
+
+\begin{itemize}
+    \item \texttt{raw data/video2frames.py} : this will download the video (if it is not present in the directory) and analyse its frames to produce a list of coordinates of the ship. It will also run an OCR to get the additional data and save it to a file.
+    \item \texttt{raw data/coastlineparse.py} : this will parse the XML map file and produce coordinates for the sides of the the canal, and save them. It depends on the previous output for some visualization.
+    \item \texttt{raw data/smoother.py} : this file will combine the long lists of coordinates of the ship and the canal to produce a cubic spline or hermite approximation of the path and the coast. It will also rotate and translate the coordinates to have a canal with vertical sides in the straight section. These results are then saved in the 3 \texttt{csv} files used by the fluid sim.
+\end{itemize} 
+
+
 \end{document}

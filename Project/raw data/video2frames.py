@@ -7,8 +7,6 @@ from numpy.core.numeric import NaN
 from scipy.signal import convolve2d
 from scipy.optimize import minimize
 import pytesseract
-import parse
-import codecs
 import os.path
 
 
@@ -111,55 +109,10 @@ def get_data(image):
         image[40:256, 80:325, :], config='--psm 6').split("\n")
     lines = [l for l in lines if len(l) > 4]
 
-    """
-    for i, l in enumerate(lines):    
-        lines[i] = l.replace("°", "")        
-
-    try:
-        sog = list(parse.parse("SOG: {:f} Knts", lines[7]))[0]
-    except:
-        print("FALIED OCR")
-        print(lines)
-        sog = np.NaN
-
-    try:
-        hdg = list(parse.parse("HDG: {:f}", lines[8]))[0]
-    except:
-        print("FALIED OCR")
-        print(lines)
-        hdg = np.NaN
-
-    try:
-        cog = list(parse.parse("COG: {:f}", lines[9]))[0]
-    except:
-        print("FALIED OCR")
-        print(lines)
-        cog = np.NaN
-
-    try:
-        rot = list(parse.parse("ROT: {:f}", lines[10]))[0]
-    except:
-        print("FALIED OCR")
-        print(lines)
-        rot = np.NaN
-
-    try:
-        draught = list(parse.parse("Draught: {:f} m", lines[11]))[0]
-    except:
-        print("FALIED OCR")
-        print(lines)
-        draught = np.NaN
-    """
-
     l2 = pytesseract.image_to_string(
         image[115:135, 610:808, :], config='--psm 6').split("\n")
     l2 = [l for l in l2 if len(l) > 4]
     
-    """
-    h, m, s = list(parse.parse("23 Mar 2021 {:d}:{:d}:{:d} UTC", l2[0]))
-    t = 3600*h + 60*m + s
-    data = np.array([t, sog, hdg, cog, rot, draught])
-    """
     return lines + l2
 
 
@@ -253,21 +206,21 @@ plt.gca().invert_yaxis()
 plt.savefig("../general_tracking.jpg")
 #%%
 
-# cX = np.array(cX)
-# cY = np.array(cY)
-# XY = np.array(XY)
-# Data = np.array(Data)
-# 
-# np.savetxt("cX.txt", cX, delimiter=",")
-# np.savetxt("cY.txt", cY, delimiter=",")
-# np.savetxt("XY.txt", XY, delimiter=",")
-# 
-# f = codecs.open("Data.txt", "w", "utf-8")
-# for l in Data:
-#     for s in l:
-#         f.write(s)
-#         f.write(",")
-#     f.write("\n")
-# f.close()
+cX = np.array(cX)
+cY = np.array(cY)
+XY = np.array(XY)
+Data = np.array(Data)
+
+np.savetxt("cX.txt", cX, delimiter=",")
+np.savetxt("cY.txt", cY, delimiter=",")
+np.savetxt("XY.txt", XY, delimiter=",")
+
+f = codecs.open("Data.txt", "w", "utf-8")
+for l in Data:
+    for s in l:
+        f.write(s)
+        f.write(",")
+    f.write("\n")
+f.close()
 
 

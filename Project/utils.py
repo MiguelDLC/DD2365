@@ -65,10 +65,8 @@ L_c = 14 #depth of the boat
 F0 = Mu * U * L_c * Re
 M_0 = Rho*L*L*L_c
 
-TINIT = 404.7372693860113
 TINIT = 200
 
-#%%
 #%%
 
 

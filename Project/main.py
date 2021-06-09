@@ -2,8 +2,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from time import perf_counter as cl
-import cProfile # est inclu de base avec python
-pr = cProfile.Profile()
 from utils import *
 
 # %%
@@ -24,7 +22,7 @@ matplotlib.rc("text.latex", preamble=r"""
 """)
 
 c = [u'#1f77b4', u'#ff7f0e', u'#2ca02c', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf']
-
+os.makedirs("Report/Figures", exist_ok=True)
 
 #%%
 
